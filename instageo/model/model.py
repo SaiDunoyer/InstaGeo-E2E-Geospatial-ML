@@ -188,8 +188,8 @@ class PrithviSeg(nn.Module):
                 nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
-
-        self.segmentation_head.apply(init_weights)  # Apply only to the segmentation head
+        
+       
 
         def upscaling_block(in_channels: int, out_channels: int) -> nn.Module:
             """Upscaling block.
@@ -233,6 +233,7 @@ class PrithviSeg(nn.Module):
                 kernel_size=1, in_channels=embed_dims[-1], out_channels=num_classes
             ),
         )
+        self.segmentation_head.apply(init_weights)  # Apply only to the segmentation head
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
         """Define the forward pass of the model.
