@@ -166,6 +166,8 @@ class PrithviSeg(nn.Module):
         if freeze_backbone:
             for param in model.parameters():
                 param.requires_grad = False
+            for param in list(model.parameters())[-10:]:  # Par exemple, dégeler les 10 dernières couches
+                param.requires_grad = True
         filtered_checkpoint_state_dict = {
             key[len("encoder.") :]: value
             for key, value in checkpoint.items()
@@ -177,7 +179,13 @@ class PrithviSeg(nn.Module):
         _ = model.load_state_dict(filtered_checkpoint_state_dict)
 
         self.prithvi_100M_backbone = model
+        def init_weights(m):
+            if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
 
+        self.apply(init_weights)
         def upscaling_block(in_channels: int, out_channels: int) -> nn.Module:
             """Upscaling block.
 
@@ -205,6 +213,7 @@ class PrithviSeg(nn.Module):
                 ),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(),
+                nn.Conv2d(out_channels, out_channels, kernel_size=1), # Ajout d'un skip connection
             )
 
         embed_dims = [
@@ -230,9 +239,11 @@ class PrithviSeg(nn.Module):
         features = self.prithvi_100M_backbone(img)
         # drop cls token
         reshaped_features = features[:, 1:, :]
-        feature_img_side_length = int(
-            np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
-        )
+        # feature_img_side_length = int(
+        #     np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
+        # )
+        patch_size = 16  # Patch embedding utilisé par ViT
+        feature_img_side_length = image_size // patch_size  
         reshaped_features = reshaped_features.permute(0, 2, 1).reshape(
             features.shape[0], -1, feature_img_side_length, feature_img_side_length
         )
