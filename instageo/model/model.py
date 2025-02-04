@@ -161,11 +161,11 @@ class PrithviSeg(nn.Module):
             model_config = yaml.safe_load(f)
 
         model_args = model_config["model_args"]
-
         model_args["num_frames"] = temporal_step
         model_args["img_size"] = image_size
         self.model_args = model_args
-        # instantiate model
+
+        # Instantiate model
         model = ViTEncoder(**model_args)
         if freeze_backbone:
             for param in model.parameters():
@@ -173,6 +173,7 @@ class PrithviSeg(nn.Module):
             # Unfreeze the last N layers
             for param in list(model.parameters())[-num_unfrozen_layers:]:
                 param.requires_grad = True
+
         encoder_state_dict = {
             key[len("encoder.") :]: value
             for key, value in checkpoint.items()
@@ -181,15 +182,22 @@ class PrithviSeg(nn.Module):
         encoder_state_dict["pos_embed"] = torch.zeros(
             1, (temporal_step * (image_size // 16) ** 2 + 1), 768
         )
-        _ = model.load_state_dict(encoder_state_dict)
+        model.load_state_dict(encoder_state_dict)
 
         self.prithvi_100M_backbone = model
-        def init_weights(m):
-            if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
-                nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
         
+        # Define the segmentation head
+        embed_dims = [
+            (model_args["embed_dim"] * model_args["num_frames"]) // (2**i)
+            for i in range(5)
+        ]
+        self.segmentation_head = nn.Sequential(
+            *[upscaling_block(embed_dims[i], embed_dims[i + 1]) for i in range(4)],
+            nn.Conv2d(
+                kernel_size=1, in_channels=embed_dims[-1], out_channels=num_classes
+            ),
+        )
+        self.segmentation_head.apply(self.init_weights)  # Apply only to the segmentation he
        
 
         def upscaling_block(in_channels: int, out_channels: int) -> nn.Module:
@@ -206,7 +214,7 @@ class PrithviSeg(nn.Module):
                 nn.ConvTranspose2d(
                     in_channels=in_channels,
                     out_channels=out_channels,
-                    kernel_size=3, # 🔺 Slightly larger kernel
+                    kernel_size=3,
                     stride=2,
                     padding=1,
                     output_padding=1,
@@ -226,18 +234,20 @@ class PrithviSeg(nn.Module):
                 # nn.Conv2d(out_channels, out_channels, kernel_size=1),
                 # nn.ReLU(),
             )
+        
+        
+    @staticmethod
+    def init_weights(m: nn.Module) -> None:
+        """Initialize weights for the segmentation head.
 
-        embed_dims = [
-            (model_args["embed_dim"] * model_args["num_frames"]) // (2**i)
-            for i in range(5)
-        ]
-        self.segmentation_head = nn.Sequential(
-            *[upscaling_block(embed_dims[i], embed_dims[i + 1]) for i in range(4)],
-            nn.Conv2d(
-                kernel_size=1, in_channels=embed_dims[-1], out_channels=num_classes
-            ),
-        )
-        self.segmentation_head.apply(init_weights)  # Apply only to the segmentation head
+        Args:
+            m (nn.Module): Module to initialize.
+        """
+        if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+            nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+        elif isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+        
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
         """Define the forward pass of the model.
