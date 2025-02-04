@@ -31,6 +31,8 @@ import pytorch_lightning as pl
 import rasterio
 import torch
 import torch.nn as nn
+from sklearn.metrics import roc_auc_score
+
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -387,6 +389,7 @@ class PrithviSegmentationModule(pl.LightningModule):
         accuracy_per_class = []
         precision_per_class = []
         recall_per_class = []
+        # roc_auc_per_class = []
 
         for clas in classes:
             pred_cls = pred_mask == clas
@@ -419,6 +422,13 @@ class PrithviSegmentationModule(pl.LightningModule):
             )
             recall_per_class.append(recall)
 
+            # # Compute ROC AUC
+            # if len(np.unique(gt_cls)) > 1:  # ROC AUC requires at least two classes
+            #     roc_auc = roc_auc_score(gt_cls, pred_cls)
+            #     roc_auc_per_class.append(roc_auc)
+            # else:
+            #     roc_auc_per_class.append(float('nan'))  # Undefined for single-class cases
+
         # Overall IoU and accuracy
         mean_iou = np.mean(iou_per_class) if iou_per_class else 0.0
         overall_accuracy = np.sum(pred_mask == gt_mask) / gt_mask.size
@@ -430,6 +440,7 @@ class PrithviSegmentationModule(pl.LightningModule):
             "iou_per_class": iou_per_class,
             "precision_per_class": precision_per_class,
             "recall_per_class": recall_per_class,
+            # "roc_auc_per_class": roc_auc_per_class,
         }
 
 
