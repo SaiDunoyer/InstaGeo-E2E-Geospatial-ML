@@ -126,6 +126,7 @@ class PrithviSeg(nn.Module):
         image_size: int = 224,
         num_classes: int = 2,
         freeze_backbone: bool = True,
+        num_unfrozen_layers: int = 10,
     ) -> None:
         """Initialize the PrithviSeg model.
 
@@ -144,14 +145,16 @@ class PrithviSeg(nn.Module):
         weights_dir.mkdir(parents=True, exist_ok=True)
         weights_path = weights_dir / "Prithvi_EO_V1_100M.pt"
         cfg_path = weights_dir / "config.yaml"
-        download_file(
-            "https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-1.0-100M/resolve/main/Prithvi_EO_V1_100M.pt?download=true",  # noqa
-            weights_path,
-        )
-        download_file(
-            "https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M/raw/main/config.yaml",  # noqa
-            cfg_path,
-        )
+        if not os.path.exists(weights_path):
+            download_file(
+                "https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-1.0-100M/resolve/main/Prithvi_EO_V1_100M.pt?download=true",  # noqa
+                weights_path,
+            )
+        if not os.path.exists(cfg_path):
+            download_file(
+                "https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M/raw/main/config.yaml",  # noqa
+                cfg_path,
+            )
         checkpoint = torch.load(weights_path, map_location="cpu")
         with open(cfg_path) as f:
             model_config = yaml.safe_load(f)
@@ -166,17 +169,18 @@ class PrithviSeg(nn.Module):
         if freeze_backbone:
             for param in model.parameters():
                 param.requires_grad = False
-            for param in list(model.parameters())[-10:]:  # Par exemple, dégeler les 10 dernières couches
-                param.requires_grad = True
-        filtered_checkpoint_state_dict = {
+            # Unfreeze the last N layers
+            for param in list(model.parameters())[-num_unfrozen_layers:]:
+        param.requires_grad = True
+        encoder_state_dict = {
             key[len("encoder.") :]: value
             for key, value in checkpoint.items()
             if key.startswith("encoder.")
         }
-        filtered_checkpoint_state_dict["pos_embed"] = torch.zeros(
+        encoder_state_dict["pos_embed"] = torch.zeros(
             1, (temporal_step * (image_size // 16) ** 2 + 1), 768
         )
-        _ = model.load_state_dict(filtered_checkpoint_state_dict)
+        _ = model.load_state_dict(encoder_state_dict)
 
         self.prithvi_100M_backbone = model
         def init_weights(m):
@@ -185,7 +189,8 @@ class PrithviSeg(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
 
-        self.apply(init_weights)
+        self.segmentation_head.apply(init_weights)  # Apply only to the segmentation head
+
         def upscaling_block(in_channels: int, out_channels: int) -> nn.Module:
             """Upscaling block.
 
@@ -213,7 +218,9 @@ class PrithviSeg(nn.Module):
                 ),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(),
-                nn.Conv2d(out_channels, out_channels, kernel_size=1), # Ajout d'un skip connection
+                # Skip connection
+                nn.Conv2d(out_channels, out_channels, kernel_size=1),
+                nn.ReLU(),
             )
 
         embed_dims = [
@@ -236,14 +243,13 @@ class PrithviSeg(nn.Module):
         Returns:
             torch.Tensor: Output tensor after image segmentation.
         """
-        features = self.prithvi_100M_backbone(img)
-        # drop cls token
+        features = self.prithvi_100M_backbone(img) # drop cls token
         reshaped_features = features[:, 1:, :]
         # feature_img_side_length = int(
         #     np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
         # )
         patch_size = 16  # Patch embedding utilisé par ViT
-        feature_img_side_length = image_size // patch_size  
+        feature_img_side_length = reshaped_features.shape[1] // patch_size  
         reshaped_features = reshaped_features.permute(0, 2, 1).reshape(
             features.shape[0], -1, feature_img_side_length, feature_img_side_length
         )
