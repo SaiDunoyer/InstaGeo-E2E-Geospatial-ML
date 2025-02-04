@@ -245,15 +245,19 @@ class PrithviSeg(nn.Module):
             torch.Tensor: Output tensor after image segmentation.
         """
         features = self.prithvi_100M_backbone(img) # drop cls token
+        print(f"Backbone output shape: {features.shape}")
         reshaped_features = features[:, 1:, :]
-        # feature_img_side_length = int(
-        #     np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
-        # )
-        patch_size = 16  # Patch embedding utilisé par ViT
-        feature_img_side_length = reshaped_features.shape[1] // patch_size  
+        print(f"Features after dropping cls token: {reshaped_features.shape}")
+
+        feature_img_side_length = int(
+            np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
+        )
+        # patch_size = 16  # Patch embedding utilisé par ViT
+        # feature_img_side_length = reshaped_features.shape[1] // patch_size  
         reshaped_features = reshaped_features.permute(0, 2, 1).reshape(
             features.shape[0], -1, feature_img_side_length, feature_img_side_length
         )
+        print(f"Reshaped features: {reshaped_features.shape}")
 
         out = self.segmentation_head(reshaped_features)
         return out
