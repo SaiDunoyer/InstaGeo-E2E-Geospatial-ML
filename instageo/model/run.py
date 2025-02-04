@@ -34,8 +34,9 @@ import torch.nn as nn
 from sklearn.metrics import roc_auc_score
 
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
+
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
@@ -594,12 +595,16 @@ def main(cfg: DictConfig) -> None:
         )
 
         logger = TensorBoardLogger(hydra_out_dir, name="instageo")
-
+        early_stopping = EarlyStopping(
+            monitor="val_mIoU",  # Monitor validation IoU
+            patience=10,  # Number of epochs to wait before stopping
+            mode="max",  # Maximize IoU
+        )
         trainer = pl.Trainer(
             accelerator=get_device(),
             max_epochs=cfg.train.num_epochs,
             precision="16-mixed", # ✅ Enables mixed precision
-            callbacks=[checkpoint_callback],
+            callbacks=[checkpoint_callback, early_stopping],  # Add early stopping
             logger=logger,
         )
 

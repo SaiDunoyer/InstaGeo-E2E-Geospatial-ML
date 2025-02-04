@@ -27,6 +27,7 @@ import numpy as np
 import requests  # type: ignore
 import torch
 import torch.nn as nn
+
 import yaml  # type: ignore
 from absl import logging
 
@@ -205,7 +206,7 @@ class PrithviSeg(nn.Module):
                 nn.ConvTranspose2d(
                     in_channels=in_channels,
                     out_channels=out_channels,
-                    kernel_size=3,
+                    kernel_size=4, # 🔺 Slightly larger kernel
                     stride=2,
                     padding=1,
                     output_padding=1,
@@ -216,11 +217,14 @@ class PrithviSeg(nn.Module):
                     kernel_size=3,
                     padding=1,
                 ),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(),
-                # Skip connection
-                nn.Conv2d(out_channels, out_channels, kernel_size=1),
-                nn.ReLU(),
+                # nn.BatchNorm2d(out_channels),
+                nn.InstanceNorm2d(out_channels), # More stable normalization,  safer choice for CNN-based architectures
+                # nn.ReLU(),
+                nn.LeakyReLU(negative_slope=0.01), # Handles sparse data better
+
+                # # Skip connection
+                # nn.Conv2d(out_channels, out_channels, kernel_size=1),
+                # nn.ReLU(),
             )
 
         embed_dims = [
@@ -245,9 +249,9 @@ class PrithviSeg(nn.Module):
             torch.Tensor: Output tensor after image segmentation.
         """
         features = self.prithvi_100M_backbone(img) # drop cls token
-        print(f"Backbone output shape: {features.shape}")
+        # print(f"Backbone output shape: {features.shape}")
         reshaped_features = features[:, 1:, :]
-        print(f"Features after dropping cls token: {reshaped_features.shape}")
+        # print(f"Features after dropping cls token: {reshaped_features.shape}")
 
         feature_img_side_length = int(
             np.sqrt(reshaped_features.shape[1] // self.model_args["num_frames"])
@@ -257,7 +261,7 @@ class PrithviSeg(nn.Module):
         reshaped_features = reshaped_features.permute(0, 2, 1).reshape(
             features.shape[0], -1, feature_img_side_length, feature_img_side_length
         )
-        print(f"Reshaped features: {reshaped_features.shape}")
+        # print(f"Reshaped features: {reshaped_features.shape}")
 
         out = self.segmentation_head(reshaped_features)
         return out
