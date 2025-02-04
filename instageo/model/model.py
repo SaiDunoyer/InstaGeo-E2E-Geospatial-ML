@@ -171,7 +171,7 @@ class PrithviSeg(nn.Module):
                 param.requires_grad = False
             # Unfreeze the last N layers
             for param in list(model.parameters())[-num_unfrozen_layers:]:
-        param.requires_grad = True
+                param.requires_grad = True
         encoder_state_dict = {
             key[len("encoder.") :]: value
             for key, value in checkpoint.items()
