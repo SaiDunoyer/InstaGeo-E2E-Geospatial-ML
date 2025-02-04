@@ -206,7 +206,7 @@ class PrithviSeg(nn.Module):
                 nn.ConvTranspose2d(
                     in_channels=in_channels,
                     out_channels=out_channels,
-                    kernel_size=4, # 🔺 Slightly larger kernel
+                    kernel_size=3, # 🔺 Slightly larger kernel
                     stride=2,
                     padding=1,
                     output_padding=1,
