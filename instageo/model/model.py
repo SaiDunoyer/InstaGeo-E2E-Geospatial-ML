@@ -186,18 +186,7 @@ class PrithviSeg(nn.Module):
 
         self.prithvi_100M_backbone = model
         
-        # Define the segmentation head
-        embed_dims = [
-            (model_args["embed_dim"] * model_args["num_frames"]) // (2**i)
-            for i in range(5)
-        ]
-        self.segmentation_head = nn.Sequential(
-            *[upscaling_block(embed_dims[i], embed_dims[i + 1]) for i in range(4)],
-            nn.Conv2d(
-                kernel_size=1, in_channels=embed_dims[-1], out_channels=num_classes
-            ),
-        )
-        self.segmentation_head.apply(self.init_weights)  # Apply only to the segmentation he
+        # self.segmentation_head.apply(self.init_weights)  # Apply only to the segmentation he
        
 
         def upscaling_block(in_channels: int, out_channels: int) -> nn.Module:
@@ -235,18 +224,28 @@ class PrithviSeg(nn.Module):
                 # nn.ReLU(),
             )
         
-        
-    @staticmethod
-    def init_weights(m: nn.Module) -> None:
-        """Initialize weights for the segmentation head.
+        # Define the segmentation head
+        embed_dims = [
+            (model_args["embed_dim"] * model_args["num_frames"]) // (2**i)
+            for i in range(5)
+        ]
+        self.segmentation_head = nn.Sequential(
+            *[upscaling_block(embed_dims[i], embed_dims[i + 1]) for i in range(4)],
+            nn.Conv2d(
+                kernel_size=1, in_channels=embed_dims[-1], out_channels=num_classes
+            ),
+        )
+    # @staticmethod
+    # def init_weights(m: nn.Module) -> None:
+    #     """Initialize weights for the segmentation head.
 
-        Args:
-            m (nn.Module): Module to initialize.
-        """
-        if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
-            nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
-        elif isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
+    #     Args:
+    #         m (nn.Module): Module to initialize.
+    #     """
+    #     if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+    #         nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
+    #     elif isinstance(m, nn.Linear):
+    #         nn.init.xavier_uniform_(m.weight)
         
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
