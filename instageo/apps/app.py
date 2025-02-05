@@ -30,12 +30,14 @@ from pathlib import Path
 
 import streamlit as st
 
-from instageo import INSTAGEO_APPS_PATH
-from instageo.apps.viz import create_map_with_geotiff_tiles
+# from instageo import INSTAGEO_APPS_PATH
+# from instageo.apps.viz import create_map_with_geotiff_tiles
+from viz import create_map_with_geotiff_tiles
 
 
 def generate_map(
-    directory: str, year: int, month: int, country_tiles: list[str]
+    # directory: str, 
+    year: int, month: int, country_tiles: list[str]
 ) -> None:
     """Generate the plotly map.
 
@@ -49,14 +51,15 @@ def generate_map(
         None.
     """
     try:
-        if not directory or not Path(directory).is_dir():
-            raise ValueError("Invalid directory path.")
-
+        # if not directory or not Path(directory).is_dir():
+        #     raise ValueError("Invalid directory path.")
+        directory = "C:\\Users\\DUNOYERS\\working\\InstaGeo-E2E-Geospatial-ML\\instageo\\apps"
         prediction_tiles = glob.glob(os.path.join(directory, f"{year}/{month}/*.tif"))
+        print(prediction_tiles)
         tiles_to_consider = [
             tile
             for tile in prediction_tiles
-            if os.path.basename(tile).split("_")[1].strip("T") in country_tiles
+            if os.path.basename(tile).split("_")[4].strip("T") in country_tiles
         ]
 
         if not tiles_to_consider:
@@ -81,7 +84,8 @@ def main() -> None:
     )
     st.sidebar.header("Settings")
     with open(
-        INSTAGEO_APPS_PATH / "utils/country_code_to_mgrs_tiles.json"
+        # INSTAGEO_APPS_PATH / "utils/country_code_to_mgrs_tiles.json"
+        "utils/country_code_to_mgrs_tiles.json"
     ) as json_file:
         countries_to_tiles_map = json.load(json_file)
 
@@ -94,12 +98,12 @@ def main() -> None:
             "ISO 3166-1 Alpha-2 Country Code:",
             options=list(countries_to_tiles_map.keys()),
         )
-        year = st.sidebar.number_input("Select Year", 2023, 2024)
+        year = st.sidebar.number_input("Select Year", 2016, 2017)
         month = st.sidebar.number_input("Select Month", 1, 12)
 
     if st.sidebar.button("Generate Map"):
         country_tiles = countries_to_tiles_map[country_code]
-        generate_map(directory, year, month, country_tiles)
+        generate_map(year, month, country_tiles)
     else:
         st.plotly_chart(
             create_map_with_geotiff_tiles(tiles_to_overlay=[]), use_container_width=True

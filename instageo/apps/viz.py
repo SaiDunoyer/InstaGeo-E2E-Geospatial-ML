@@ -24,6 +24,7 @@ import datashader.transfer_functions as tf
 import matplotlib.cm
 import plotly.graph_objects as go
 import rasterio
+import scipy
 import xarray as xr
 from pyproj import CRS, Transformer
 
@@ -126,7 +127,8 @@ def read_geotiff_to_xarray(filepath: str) -> tuple[xr.Dataset, CRS]:
     Returns:
         xr.Dataset: The loaded xarray dataset.
     """
-    return xr.open_dataset(filepath).sel(band=1), get_crs(filepath)
+    print(xr.backends.list_engines())
+    return xr.open_dataset(filepath, engine="scipy").sel(band=1), get_crs(filepath)
 
 
 def create_map_with_geotiff_tiles(tiles_to_overlay: list[str]) -> go.Figure:
