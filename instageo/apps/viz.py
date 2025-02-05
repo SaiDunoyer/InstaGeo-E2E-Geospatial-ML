@@ -24,13 +24,14 @@ import datashader.transfer_functions as tf
 import matplotlib.cm
 import plotly.graph_objects as go
 import rasterio
-import scipy
 import xarray as xr
 from pyproj import CRS, Transformer
 
 epsg3857_to_epsg4326 = Transformer.from_crs(3857, 4326, always_xy=True)
 
-
+# COUNTRY_CENTERS = {
+#     "IR": {"lat": 32.4279, "lon": 53.6880, "zoom": 5},  # Iran
+# }
 def get_crs(filepath: str) -> CRS:
     """Retrieves the CRS of a GeoTiff data.
 
@@ -128,10 +129,11 @@ def read_geotiff_to_xarray(filepath: str) -> tuple[xr.Dataset, CRS]:
         xr.Dataset: The loaded xarray dataset.
     """
     print(xr.backends.list_engines())
-    return xr.open_dataset(filepath, engine="scipy").sel(band=1), get_crs(filepath)
+    print(filepath)
+    return xr.open_dataset(filepath, engine="rasterio").sel(band=1), get_crs(filepath)
 
 
-def create_map_with_geotiff_tiles(tiles_to_overlay: list[str]) -> go.Figure:
+def create_map_with_geotiff_tiles(tiles_to_overlay: list[str], country_code = None) -> go.Figure:
     """Create a map with multiple GeoTIFF tiles overlaid.
 
     This function reads GeoTIFF files from a specified directory and overlays them on a
@@ -159,6 +161,13 @@ def create_map_with_geotiff_tiles(tiles_to_overlay: list[str]) -> go.Figure:
             mapbox_layers.append(
                 {"sourcetype": "image", "source": img, "coordinates": coordinates}
             )
+
+
     # Overlay the resulting image
     fig.update_layout(mapbox_layers=mapbox_layers)
+    if country_code:
+        fig.update_layout(
+        mapbox_layers=mapbox_layers,
+        mapbox=dict(center=go.layout.mapbox.Center(lat= coordinates[0][1], lon=coordinates[1][0]), zoom=10),
+    )
     return fig
