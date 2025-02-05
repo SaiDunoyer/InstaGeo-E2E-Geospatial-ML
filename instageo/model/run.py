@@ -798,7 +798,7 @@ def main(cfg: DictConfig) -> None:
 
     # TODO: Add support for chips that are greater than image size used for training
     elif cfg.mode == "chip_inference":
-        check_required_flags(["root_dir", "test_filepath", "checkpoint_path"], cfg)
+        check_required_flags(["output_dir", "test_filepath", "checkpoint_path"], cfg)
         output_dir = os.path.join("/kaggle/working/", "predictions")
         os.makedirs(output_dir, exist_ok=True)
         test_dataset = InstaGeoDataset(
@@ -832,6 +832,7 @@ def main(cfg: DictConfig) -> None:
             class_weights=cfg.train.class_weights,
             ignore_index=cfg.train.ignore_index,
             weight_decay=cfg.train.weight_decay,
+            strict=False,  # Allow missing keys
         )
         chip_inference(test_loader, output_dir, model, device=get_device())
 
