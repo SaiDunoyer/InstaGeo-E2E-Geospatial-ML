@@ -127,7 +127,7 @@ class PrithviSeg(nn.Module):
         image_size: int = 224,
         num_classes: int = 2,
         freeze_backbone: bool = True,
-        num_unfrozen_layers: int = 10,
+        num_unfrozen_layers: int = 2,
     ) -> None:
         """Initialize the PrithviSeg model.
 
@@ -214,8 +214,8 @@ class PrithviSeg(nn.Module):
                     kernel_size=3,
                     padding=1,
                 ),
-                # nn.BatchNorm2d(out_channels),
-                nn.InstanceNorm2d(out_channels), # More stable normalization,  safer choice for CNN-based architectures
+                nn.BatchNorm2d(out_channels),
+                # nn.InstanceNorm2d(out_channels), # More stable normalization,  safer choice for CNN-based architectures
                 # nn.ReLU(),
                 nn.LeakyReLU(negative_slope=0.01), # Handles sparse data better
 
