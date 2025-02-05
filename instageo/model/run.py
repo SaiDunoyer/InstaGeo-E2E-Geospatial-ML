@@ -826,7 +826,7 @@ def main(cfg: DictConfig) -> None:
             checkpoint_path,
             image_size=IM_SIZE,
             learning_rate=cfg.train.learning_rate,
-            freeze_backbone=cfg.model.freeze_backbone,
+            freeze_backbone=False,
             num_classes=cfg.model.num_classes,
             temporal_step=cfg.dataloader.temporal_dim,
             class_weights=cfg.train.class_weights,
