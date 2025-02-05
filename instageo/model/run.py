@@ -832,7 +832,15 @@ def main(cfg: DictConfig) -> None:
             class_weights=cfg.train.class_weights,
             ignore_index=cfg.train.ignore_index,
             weight_decay=cfg.train.weight_decay,
+            strict = False
         )
+
+        # Reinitialize segmentation head layers manually
+        def reset_layers(m):
+            if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.BatchNorm2d):
+                m.reset_parameters()
+
+        model.net.segmentation_head.apply(reset_layers)
         chip_inference(test_loader, output_dir, model, device=get_device())
 
 
