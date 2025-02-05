@@ -34,6 +34,7 @@ import pandas as pd
 # from instageo import INSTAGEO_APPS_PATH
 # from instageo.apps.viz import create_map_with_geotiff_tiles
 from viz import create_map_with_geotiff_tiles
+from streamlit_plotly_events import plotly_events  # 📌 Capture des événements Plotly
 
 
 def generate_map(
@@ -167,13 +168,20 @@ def main() -> None:
 
     # Affichage de la carte avec callback pour récupérer les coordonnées
     fig = create_map(country_code)
-    hover_data = st.plotly_chart(fig, use_container_width=True)
+    # hover_data = st.plotly_chart(fig, use_container_width=True)
+    selected_points = plotly_events(fig, click_event=True, hover_event=True)  # 📌 Capture du survol
 
-    # Extraire les coordonnées de l'événement hover
-    if hover_data is not None and hover_data.get("points"):
-        point = hover_data["points"][0]
-        lat, lon = point["lat"], point["lon"]
-        st.session_state.hover_lat, st.session_state.hover_lon = lat, lon
+    # Extraction des coordonnées au survol
+    if selected_points:
+        point = selected_points[0]
+        print(point)
+        st.session_state.hover_lat, st.session_state.hover_lon = point["latitude"], point["longitude"]
+
+    # # Extraire les coordonnées de l'événement hover
+    # if hover_data is not None and hover_data.get("points"):
+    #     point = hover_data["points"][0]
+    #     lat, lon = point["lat"], point["lon"]
+    #     st.session_state.hover_lat, st.session_state.hover_lon = lat, lon
 
     # Afficher les coordonnées sous la carte
     if st.session_state.hover_lat and st.session_state.hover_lon:

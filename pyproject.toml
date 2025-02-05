@@ -55,6 +55,7 @@ pyproj = "^3.7.0"
 scipy = "^1.15.1"
 netcdf4 = "^1.7.2"
 rioxarray = "^0.18.2"
+streamlit-plotly-events = "^0.0.6"
 
 
 [build-system]

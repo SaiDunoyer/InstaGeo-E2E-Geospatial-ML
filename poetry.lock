@@ -1540,6 +1540,21 @@ watchdog = {version = ">=2.1.5,<7", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-connector-python (>=3.3.0)", "snowflake-snowpark-python[modin] (>=1.17.0)"]
 
 [[package]]
+name = "streamlit-plotly-events"
+version = "0.0.6"
+description = "Plotly chart component for Streamlit that also allows for events to bubble back up to Streamlit."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "streamlit-plotly-events-0.0.6.tar.gz", hash = "sha256:1fe25dbf0e5d803aeb90253be04d7b395f5bcfdf3c654f96ff3c19424e7f9582"},
+    {file = "streamlit_plotly_events-0.0.6-py3-none-any.whl", hash = "sha256:e63fbe3c6a0746fdfce20060fc45ba5cd97805505c332b27372dcbd02c2ede29"},
+]
+
+[package.dependencies]
+plotly = ">=4.14.3"
+streamlit = ">=0.63"
+
+[[package]]
 name = "tenacity"
 version = "9.0.0"
 description = "Retry code until it succeeds"
@@ -1705,4 +1720,4 @@ viz = ["cartopy", "matplotlib", "nc-time-axis", "seaborn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "48273b50a053ec8820cd500c6e0554432167c70b62127d108d49f1eb9a9bc462"
+content-hash = "ae726f214b887e992cf6cdcfd2971feed5db802b70b6f2dc6816853a7ef41eb6"

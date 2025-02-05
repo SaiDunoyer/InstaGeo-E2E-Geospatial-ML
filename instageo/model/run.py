@@ -832,7 +832,6 @@ def main(cfg: DictConfig) -> None:
             class_weights=cfg.train.class_weights,
             ignore_index=cfg.train.ignore_index,
             weight_decay=cfg.train.weight_decay,
-            strict=False,  # Allow missing keys
         )
         chip_inference(test_loader, output_dir, model, device=get_device())
 
